@@ -1,6 +1,6 @@
 # VRC2023_vscode
 Code for VRC2023
-<img style="float: right;position:fixed;display:block" src="./image/logo.png" alt="Icon" width="100">
+<div><img src="./image/logo.png" alt="Icon" width="100"></div>
 
 ## Requirements
 
