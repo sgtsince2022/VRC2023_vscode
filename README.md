@@ -1,5 +1,8 @@
 # VRC2023_vscode
 Code for VRC2023
+<div style="float: right;display:fixed">
+  <img src="./image/logo.png" alt="Icon" width="100">
+</div>
 
 ## Requirements
 
@@ -11,7 +14,3 @@ Code for VRC2023
 - DCMotor (in EEB.h)
 - Servo_Motor (in EEB.h)
 
-
-<div style="float: right;">
-  <img src="./image/logo.png" alt="Icon" width="100">
-</div>
