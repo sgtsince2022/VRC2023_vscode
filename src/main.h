@@ -10,9 +10,8 @@
 
 void ps2_init();
 void ps2_ctrl();
-void analog_to_pwm_value();
 
-#define MAX_PWM 4096
+#define MAX_PWM 800
 
 #define LEFT_MOTOR 1
 #define RIGHT_MOTOR 2
