@@ -5,6 +5,7 @@
 
 PS2X VRC_PS2;
 DCMotor VRC_Motor;
+Servo_Motor VRC_Reloader;
 
 int16_t pwm_left, pwm_right; 
 bool dir_left, dir_right, dir_cuon;
@@ -47,37 +48,66 @@ void ps2_ctrl() {
         delay(50);
     }
 
-    if (VRC_PS2.ButtonPressed(PSB_BLUE)) { // ban on
-        VRC_Motor.Run(3, 4096, 0);
-        Serial.println("bantumlum -> on"); delay(50);
+    //! @brief PINK/SQUARE PRESSED -> ACTIVATE THE RELOADER
+    static bool status_RELOADER = 0;
+    if (VRC_PS2.ButtonPressed(PSB_PINK)) {
+        if (status_RELOADER == 0) { // DEGREE: 0 -> 30
+            VRC_Reloader.Angle(90, 1);
+            VRC_Reloader.Angle(90, 2);
+            VRC_Reloader.Angle(90, 3);
+            VRC_Reloader.Angle(90, 4);
+            VRC_Reloader.Angle(90, 5);
+            VRC_Reloader.Angle(90, 6);
+            VRC_Reloader.Angle(90, 7);
+
+            Serial.println("RELOADING.. (0 -> 30)");
+            Serial.println("STAGE: SHOOTER SHOOTS NOW"); delay(50);
+        } else { // // DEGREE: 30 -> 0
+            VRC_Reloader.Angle(0, 1);
+            Serial.println("RELOADING.. (30 -> 0)");
+            Serial.println("STAGE: INSERT"); delay(50);
+        }
+        status_RELOADER = !status_RELOADER;
     }
     
-    if (VRC_PS2.ButtonPressed(PSB_RED)) { // ban off
-        VRC_Motor.Run(3, 4096, 0);
-        Serial.println("bantumlum -> off"); delay(50);
-    }
-
-
-    if (VRC_PS2.ButtonPressed(PSB_R1)) { 
-        dir_cuon = 1;
-        Serial.println("dir -> 1"); delay(50);
+    //! @brief BLUE/CROSS PRESSED -> TOGGLE THE SHOOTER(S)
+    static bool status_ban = 0;
+    if (VRC_PS2.ButtonPressed(PSB_BLUE)) {
+        if (status_ban == 0) { // ban on
+            VRC_Motor.Run(THE_SHOOTER, 3000, 0);
+            Serial.println("THE SHOOTER -> on"); delay(50);
+        } else { // ban off
+            VRC_Motor.Run(THE_SHOOTER, 0, 0);
+            Serial.println("THE SHOOTER -> off"); delay(50);
+        }
+        status_ban = !status_ban;
     }
     
-    if (VRC_PS2.ButtonPressed(PSB_R2)) {
-        dir_cuon = 0;
-        Serial.println("dir -> 0"); delay(50);
+    //! @brief R1 PRESSED -> CHANGE THE DIRECTION OF THE ROLLER PART
+    static bool status_dir_of_cuon = 1;
+    if (VRC_PS2.ButtonPressed(PSB_R1)) {
+        if (status_dir_of_cuon == 1) { // dir = 1
+            dir_cuon = 1;
+            Serial.println("dir cuon -> 1"); delay(50);
+        } else { // dir = 0
+            dir_cuon = 0;
+            Serial.println("dir cuon -> 0"); delay(50);
+        }
+        status_dir_of_cuon = !status_dir_of_cuon;
     }
 
-    if (VRC_PS2.ButtonPressed(PSB_PINK)) { // bat cuon 
-        VRC_Motor.Run(4, 4096, dir_cuon);
-        Serial.println("cuon bong -> on"); delay(50);
+    //! @brief ORANGE/CIRCLE PRESSED -> TOGGLE THE ROLLER PART
+    static bool status_cuon = 0;
+    if (VRC_PS2.ButtonPressed(PSB_CIRCLE)) {
+        if (status_cuon == 0) { // bat cuon
+            VRC_Motor.Run(THE_ROLLER, 3000, dir_cuon);
+            Serial.println("THE ROLLER -> on"); delay(50);
+        } else { // tat cuon
+            VRC_Motor.Run(THE_ROLLER, 0, dir_cuon);
+            Serial.println("THE ROLLER -> off"); delay(50);
+        }
+        status_cuon = !status_cuon;
     }
-
-    if (VRC_PS2.ButtonPressed(PSB_GREEN)) { // tat cuon 
-        VRC_Motor.Run(4, 0, dir_cuon);
-        Serial.println("cuon bong -> off"); delay(50);
-    }
-
 }
 void pwm_calc() {
     byte v_LY = VRC_PS2.Analog(PSS_LY);
@@ -111,9 +141,9 @@ void pwm_calc() {
     
     if ((v_RX >= 0) && (v_RX <= 20)) // turning left 
     {
-        pwm_left = (int16_t) MAX_PWM/3;
-        pwm_right = (int16_t) MAX_PWM/2;
-        dir_left = 0;
+        pwm_left = (int16_t) MAX_PWM/3*2;
+        pwm_right = (int16_t) MAX_PWM/3*2;
+        dir_left = 1;
         dir_right = 0;
         Serial.println("turning left.."); delay(50);
     
@@ -124,10 +154,10 @@ void pwm_calc() {
 
     if ((v_RX >= 235) && (v_RX <= 255)) // turning right 
     {
-        pwm_left = (int16_t) MAX_PWM/2;
-        pwm_right = (int16_t) MAX_PWM/3;
+        pwm_left = (int16_t) MAX_PWM/3*2;
+        pwm_right = (int16_t) MAX_PWM/3*2;
         dir_left = 0;
-        dir_right = 0;
+        dir_right = 1;
         Serial.println("turning right.."); delay(50);
     
         VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
@@ -186,6 +216,7 @@ void setup() {
     Serial.println("Mach khoi tao thanh cong.");
     ps2_init();
     VRC_Motor.Init();
+    VRC_Reloader.Init();
 }
 
 void loop() {

@@ -10,10 +10,15 @@
 
 void ps2_init();
 void ps2_ctrl();
+void pwm_calc();
 
 #define MAX_PWM 800
 
 #define LEFT_MOTOR 1
 #define RIGHT_MOTOR 2
+#define THE_SHOOTER 3
+#define THE_ROLLER 4
+
+
 
 #endif
