@@ -12,7 +12,7 @@ void ps2_init();
 void ps2_ctrl();
 void pwm_calc();
 
-#define MAX_PWM 800
+
 
 #define LEFT_MOTOR 1
 #define RIGHT_MOTOR 2

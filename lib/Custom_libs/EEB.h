@@ -93,6 +93,7 @@ public:
     */
    void Angle(int angle, int servo_num);  
    void Stop(int servo_num);
+   void Pulse(unsigned long pulse, int servo_num);
  
 
 };

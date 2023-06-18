@@ -66,15 +66,32 @@ void Servo_Motor::Init(){
 }
 
 void Servo_Motor::Angle(int angle, int servo_num){
-    T_on = map(angle,0,180,1,2); // T_on in ms
-    pwm.writeMicroseconds(My_servo[servo_num-1], T_on*1000);
+    T_on = map(angle,0,180,500,2500); // T_on in us
+    //T_on = angle*TMAX/180+0.5;
+    // Serial.print(" T on: ");
+    // Serial.println(T_on);
+    pwm.writeMicroseconds(My_servo[servo_num-1], T_on);
     //pwm_val = (int) (T_on/(Ts/4096));
     //pwm.setPWM(My_servo[servo_num-1],0,pwm_val);
+}
+
+void Servo_Motor::Pulse(unsigned long pulse, int servo_num){
+  // double pulselength;
+  // pulselength = 1000000;   // 1,000,000 us per second
+  // pulselength /= SERVO_FREQ;   // Analog servos run at ~60 Hz updates
+  // //Serial.print(pulselength); Serial.println(" us per period"); 
+  // pulselength /= 4096;  // 12 bits of resolution
+  // //Serial.print(pulselength); Serial.println(" us per bit"); 
+  // pulse *= 1000000;  // convert input seconds to us
+  // pulse /= pulselength;
+  // Serial.println(pulse);
+  pwm.writeMicroseconds(My_servo[servo_num-1], pulse);
 }
 
 void Servo_Motor::Stop(int servo_num){
     pwm.setPWM(My_servo[servo_num-1],4096,4096);
 }
+
 
 void scan_i2c(){
     byte error, address;
