@@ -9,9 +9,9 @@ PS2X VRC_PS2;
 DCMotor VRC_Motor;
 Servo_Motor VRC_Reloader;
 
-int16_t pwm_left, pwm_right, MAX_PWM = 800; 
+int16_t pwm_left, pwm_right, MAX_PWM = 800, PWM_U1 = 3000, PWM_U2 = 3000;
 bool dir_left, dir_right, rolling_dir;
-int gear = 0;
+int gear = 0, gear_s = 0, gear_r = 0, mode = 0 /* mode: 0 -> moving ; 1 -> utilities. */ ; 
 
 void ps2_init() {
     Serial.println("connecting to ps2..");
@@ -43,7 +43,7 @@ void ps2_init() {
 void ps2_ctrl() {
     VRC_PS2.read_gamepad(false, false);
 
-    if (VRC_PS2.Button(PSB_L1)) {
+    if (VRC_PS2.Button(PSB_L2)) {
         Serial.print("LY, RX: ");
         Serial.print(VRC_PS2.Analog(PSS_LY), DEC); 
         Serial.print(", "); Serial.println(VRC_PS2.Analog(PSS_RX));
@@ -71,7 +71,7 @@ void ps2_ctrl() {
     static bool status_SHOOTER = 0;
     if (VRC_PS2.ButtonPressed(PSB_BLUE)) {
         if (status_SHOOTER == 0) { // shooter on
-            VRC_Motor.Run(THE_SHOOTER, 3000, 0);
+            VRC_Motor.Run(THE_SHOOTER, PWM_U1, 0);
             Serial.println("THE SHOOTER -> on"); delay(50);
         } else { // shooter off
             VRC_Motor.Run(THE_SHOOTER, 0, 0);
@@ -97,7 +97,7 @@ void ps2_ctrl() {
     static bool status_rollerpart = 0;
     if (VRC_PS2.ButtonPressed(PSB_CIRCLE)) {
         if (status_rollerpart == 0) { // roller on
-            VRC_Motor.Run(THE_ROLLER, 3000, rolling_dir);
+            VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
             Serial.println("THE ROLLER -> on"); delay(50);
         } else { // roller off
             VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
@@ -106,21 +106,103 @@ void ps2_ctrl() {
      status_rollerpart = !status_rollerpart;
     }
 
-    //! @brief L3 PRESSED -> CHANGE MAXPWM 
+    //! @brief L1 PRESSED -> CHANGE SETTING MODE
+    if (VRC_PS2.ButtonPressed(PSB_L1)) {
+        if (mode == 0) {mode = 1; Serial.println("SETTING MODE IS NOW 1: SHOOTER"); delay(50);} 
+        else if (mode == 1) {mode = 2; Serial.println("SETTING MODE IS NOW 2: ROLLER"); delay(50);} 
+        else if (mode == 2) {mode = 0; Serial.println("SETTING MODE IS NOW 0: MOVING"); delay(50);} 
+    }
+    
+    if (mode == 0) { /* change the moving's pwm value */
+
+    //! @brief L3 PRESSED -> GEAR UP 
     if (VRC_PS2.ButtonPressed(PSB_L3)) {
         if (gear < 4) gear += 1;
         else gear = 0;
 
         switch (gear)
         {
-        case 1: MAX_PWM = 1500; break;
-        case 2: MAX_PWM = 2000; break;
-        case 3: MAX_PWM = 2500; break;
-        case 4: MAX_PWM = 3000; break;
-        default: case 0: MAX_PWM = 800; break;
+        case 1: MAX_PWM = 1000; Serial.println("GEAR 1"); Serial.println("-> PWM = 1000."); delay(50); break;
+        case 2: MAX_PWM = 1200; Serial.println("GEAR 2"); Serial.println("-> PWM = 1200."); delay(50); break;
+        case 3: MAX_PWM = 1300; Serial.println("GEAR 3"); Serial.println("-> PWM = 1300."); delay(50); break;
+        case 4: MAX_PWM = 1500; Serial.println("GEAR 4"); Serial.println("-> PWM = 1500."); delay(50); break;
+        default: case 0: MAX_PWM = 800; Serial.println("GEAR 0"); Serial.println("-> PWM = 800."); delay(50); break;
+        }
+    }
+
+    //! @brief R3 PRESSED -> GEAR DOWN  
+    if (VRC_PS2.ButtonPressed(PSB_R3)) {
+        if (gear > 0) gear -= 1;
+        else gear = 4;
+
+        switch (gear)
+        {
+        case 1: MAX_PWM = 1000; Serial.println("GEAR 1"); Serial.println("-> PWM = 1000."); delay(50); break;
+        case 2: MAX_PWM = 1200; Serial.println("GEAR 2"); Serial.println("-> PWM = 1200."); delay(50); break;
+        case 3: MAX_PWM = 1300; Serial.println("GEAR 3"); Serial.println("-> PWM = 1300."); delay(50); break;
+        case 4: MAX_PWM = 1500; Serial.println("GEAR 4"); Serial.println("-> PWM = 1500."); delay(50); break;
+        default: case 0: MAX_PWM = 800; Serial.println("GEAR 0"); Serial.println("-> PWM = 800."); delay(50); break;
+        }
+    }
+
+    }
+
+    if (mode == 1) { // change the shooter's pwm value 
+
+        if (VRC_PS2.ButtonPressed(PSB_L3)) {
+            if (gear_s < 3) gear_s += 1;
+            else gear_s = 0;
+
+            switch (gear_s)
+            {
+            case 1: PWM_U1 = 3200; Serial.println("GEAR 1 of SHOOTER"); Serial.println("-> PWM_U1 = 3200."); delay(50); break;
+            case 2: PWM_U1 = 3400; Serial.println("GEAR 2 of SHOOTER"); Serial.println("-> PWM_U1 = 3400."); delay(50); break;
+            default: case 0: PWM_U1 = 3000; Serial.println("GEAR 0 of SHOOTER"); Serial.println("-> PWM_U1 = 3000."); delay(50); break;
+            }
+        }
+
+        if (VRC_PS2.ButtonPressed(PSB_R3)) {
+            if (gear_s > 0) gear_s -= 1;
+            else gear_s = 2;
+
+            switch (gear_s)
+            {
+            case 1: PWM_U1 = 3200; Serial.println("GEAR 1 of SHOOTER"); Serial.println("-> PWM_U1 = 3200."); delay(50); break;
+            case 2: PWM_U1 = 3400; Serial.println("GEAR 2 of SHOOTER"); Serial.println("-> PWM_U1 = 3400."); delay(50); break;
+            default: case 0: PWM_U1 = 3000; Serial.println("GEAR 0 of SHOOTER"); Serial.println("-> PWM_U1 = 3000."); delay(50); break;
+            }
+        }
+        
+    }
+    
+    if (mode == 2) { // change the roller's pwm value 
+
+        if (VRC_PS2.ButtonPressed(PSB_L3)) {
+            if (gear_r < 3) gear_r += 1;
+            else gear_r = 0;
+
+            switch (gear_r)
+            {
+            case 1: PWM_U2 = 3400; Serial.println("GEAR 1 of ROLLER"); Serial.println("-> PWM_U2 = 3400."); delay(50); break;
+            case 2: PWM_U2 = 3800; Serial.println("GEAR 2 of ROLLER"); Serial.println("-> PWM_U2 = 3800."); delay(50); break;
+            default: case 0: PWM_U2 = 3000; Serial.println("GEAR 0 of ROLLER"); Serial.println("-> PWM_U2 = 3000."); delay(50); break;
+            }
+        }
+
+        if (VRC_PS2.ButtonPressed(PSB_R3)) {
+            if (gear_r > 0) gear_r -= 1;
+            else gear_r = 2;
+
+            switch (gear_r)
+            {
+            case 1: PWM_U2 = 3400; Serial.println("GEAR 1 of ROLLER"); Serial.println("-> PWM_U2 = 3400."); delay(50); break;
+            case 2: PWM_U2 = 3800; Serial.println("GEAR 2 of ROLLER"); Serial.println("-> PWM_U2 = 3800."); delay(50); break;
+            default: case 0: PWM_U2 = 3000; Serial.println("GEAR 0 of ROLLER"); Serial.println("-> PWM_U2 = 3000."); delay(50); break;
+            }
         }
     }
 }
+
 void pwm_calc() {
     byte v_LY = VRC_PS2.Analog(PSS_LY);
     byte v_RX = VRC_PS2.Analog(PSS_RX);
@@ -153,8 +235,8 @@ void pwm_calc() {
     
     if ((v_RX >= 0) && (v_RX <= 20)) // turning left 
     {
-        pwm_left = (int16_t) MAX_PWM/3*2;
-        pwm_right = (int16_t) MAX_PWM/3*2;
+        pwm_left = (int16_t) MAX_PWM;
+        pwm_right = (int16_t) MAX_PWM;
         dir_left = 1;
         dir_right = 0;
         Serial.println("turning left.."); delay(50);
@@ -166,8 +248,8 @@ void pwm_calc() {
 
     if ((v_RX >= 235) && (v_RX <= 255)) // turning right 
     {
-        pwm_left = (int16_t) MAX_PWM/3*2;
-        pwm_right = (int16_t) MAX_PWM/3*2;
+        pwm_left = (int16_t) MAX_PWM;
+        pwm_right = (int16_t) MAX_PWM;
         dir_left = 0;
         dir_right = 1;
         Serial.println("turning right.."); delay(50);
@@ -189,38 +271,6 @@ void pwm_calc() {
         VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         
     }
-    /*
-    switch (cmd)
-    {
-    case 1: // forward
-        break;
-    case 2: // backward
-        pwm_left = (int16_t) MAX_PWM;
-        pwm_right = (int16_t) MAX_PWM;
-        dir_left = 1;
-        dir_right = 1;
-        Serial.println("moving backward.."); delay(50);
-        break;
-    case 3: // turn left
-        pwm_left = (int16_t) MAX_PWM/3;
-        pwm_right = (int16_t) MAX_PWM/3*2;
-        dir_left = 0;
-        dir_right = 0;
-        Serial.println("turning left.."); delay(50);
-        break;
-    case 4: // turn right
-        pwm_left = (int16_t) MAX_PWM/3*2;
-        pwm_right = (int16_t) MAX_PWM/3;
-        dir_left = 0;
-        dir_right = 0;
-        Serial.println("turning right.."); delay(50);
-        break;
-    default: case 0: // stop
-        pwm_left = (int16_t) MAX_PWM/3*2;
-        pwm_right = (int16_t) MAX_PWM/3;
-        break;
-    }
-    */
 }
 
 void setup() {
