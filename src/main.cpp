@@ -12,6 +12,7 @@ Servo_Motor VRC_Reloader;
 int16_t pwm_left, pwm_right, MAX_PWM = 800, PWM_U1 = 3000, PWM_U2 = 3000;
 bool dir_left, dir_right, rolling_dir;
 int gear = 0, gear_s = 0, gear_r = 0, mode = 0 /* mode: 0 -> moving ; 1 -> utilities. */ ; 
+byte vibrate = 0;
 
 void ps2_init() {
     Serial.println("connecting to ps2..");
@@ -41,7 +42,7 @@ void ps2_init() {
 }
 
 void ps2_ctrl() {
-    VRC_PS2.read_gamepad(false, false);
+    VRC_PS2.read_gamepad(false, vibrate);
 
     if (VRC_PS2.Button(PSB_L2)) {
         Serial.print("LY, RX: ");
@@ -51,6 +52,7 @@ void ps2_ctrl() {
     }
 
     //! @brief PINK/SQUARE PRESSED -> ACTIVATE THE RELOADER
+
     static bool status_RELOADER = 0;
     if (VRC_PS2.ButtonPressed(PSB_PINK)) {
         if (status_RELOADER == 0) { // DEGREE: 0 -> 60
@@ -68,6 +70,7 @@ void ps2_ctrl() {
     }
     
     //! @brief BLUE/CROSS PRESSED -> TOGGLE THE SHOOTER(S)
+    
     static bool status_SHOOTER = 0;
     if (VRC_PS2.ButtonPressed(PSB_BLUE)) {
         if (status_SHOOTER == 0) { // shooter on
@@ -81,6 +84,7 @@ void ps2_ctrl() {
     }
     
     //! @brief R1 PRESSED -> CHANGE THE DIRECTION OF THE ROLLER PART
+    
     static bool status_rolling_direction = 1;
     if (VRC_PS2.ButtonPressed(PSB_R1)) {
         if (status_rolling_direction == 1) { // rolling dir = 1
@@ -94,6 +98,7 @@ void ps2_ctrl() {
     }
 
     //! @brief ORANGE/CIRCLE PRESSED -> TOGGLE THE ROLLER PART
+    
     static bool status_rollerpart = 0;
     if (VRC_PS2.ButtonPressed(PSB_CIRCLE)) {
         if (status_rollerpart == 0) { // roller on
@@ -107,6 +112,7 @@ void ps2_ctrl() {
     }
 
     //! @brief L1 PRESSED -> CHANGE SETTING MODE
+    
     if (VRC_PS2.ButtonPressed(PSB_L1)) {
         if (mode == 0) {mode = 1; Serial.println("SETTING MODE IS NOW 1: SHOOTER"); delay(50);} 
         else if (mode == 1) {mode = 2; Serial.println("SETTING MODE IS NOW 2: ROLLER"); delay(50);} 
@@ -117,8 +123,8 @@ void ps2_ctrl() {
 
     //! @brief L3 PRESSED -> GEAR UP 
     if (VRC_PS2.ButtonPressed(PSB_L3)) {
-        if (gear < 4) gear += 1;
-        else gear = 0;
+        if (gear < 4) {gear += 1; vibrate = 255;} 
+        else {gear = 0; vibrate = 255;}
 
         switch (gear)
         {
@@ -129,6 +135,7 @@ void ps2_ctrl() {
         default: case 0: MAX_PWM = 800; Serial.println("GEAR 0"); Serial.println("-> PWM = 800."); delay(50); break;
         }
     }
+    else if (VRC_PS2.ButtonReleased(PSB_L3)) {delay(100); vibrate = 0;}
 
     //! @brief R3 PRESSED -> GEAR DOWN  
     if (VRC_PS2.ButtonPressed(PSB_R3)) {
@@ -207,13 +214,15 @@ void pwm_calc() {
     byte v_LY = VRC_PS2.Analog(PSS_LY);
     byte v_RX = VRC_PS2.Analog(PSS_RX);
     int cmd = 0;
-    if ((v_LY >= 0) && (v_LY <= 20)) // forward
+    if ((v_LY >= 0) && (v_LY <= 60)) // forward
     {
-        pwm_left = (int16_t) MAX_PWM;
-        pwm_right = (int16_t) MAX_PWM;
+        pwm_left = (int16_t) map(v_LY, 0, 50, MAX_PWM, 50);
+        pwm_right = (int16_t) map(v_LY, 0, 50,MAX_PWM, 50);
         dir_left = 0;
         dir_right = 0;
-        Serial.println("moving forward.."); delay(50);
+        Serial.println("moving forward..       "); 
+        Serial.print(pwm_left, DEC); Serial.print(","); Serial.println(pwm_right, DEC); 
+        delay(50);
     
         VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
         VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
@@ -265,7 +274,8 @@ void pwm_calc() {
         pwm_right = (int16_t) 0;
         dir_left = 0;
         dir_right = 0;
-        Serial.println("idling.."); delay(50);
+        // Serial.println("idling..");
+        delay(50);
     
         VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
         VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
@@ -273,10 +283,11 @@ void pwm_calc() {
     }
 }
 
+
 void setup() {
     Serial.begin(9600);
     Serial.println("VIA B successfully initiated.");
-    ps2_init();
+    ps2_init(); 
     VRC_Motor.Init();
     VRC_Reloader.Init();
 }

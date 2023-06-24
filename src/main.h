@@ -6,7 +6,7 @@
 #define PS2_SEL 15 // SS
 #define PS2_CLK 14 // SLK
 #define pressures false
-#define rumble false
+#define rumble true 
 
 void ps2_init();
 void ps2_ctrl();
