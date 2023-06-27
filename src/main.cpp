@@ -7,9 +7,12 @@
 
 PS2X VRC_PS2;
 DCMotor VRC_Motor;
-Servo_Motor VRC_Reloader;
+Servo_Motor VRC_Reloader;   
+                    /*fl, fh, b_l, b_h,ll, lh, r_l, r_h, xl, ixh, yl, iyh*/
+entry_points JOY_ZONE {0, 85, 170, 255, 0, 85, 170, 255, 85, 170, 85, 170};
 
-int16_t pwm_left, pwm_right, MAX_PWM = 800, PWM_U1 = 3000, PWM_U2 = 3000;
+
+int16_t pwm_left, pwm_right, MAX_PWM = 800, PWM_U1 = 3000, PWM_U2 = 3000, MIN_PWM = 50;
 bool dir_left, dir_right, rolling_dir;
 int gear = 0, gear_s = 0, gear_r = 0, mode = 0 /* mode: 0 -> moving ; 1 -> utilities. */ ; 
 byte vibrate = 0;
@@ -42,12 +45,10 @@ void ps2_init() {
 }
 
 void ps2_ctrl() {
-    VRC_PS2.read_gamepad(false, vibrate);
+    VRC_PS2.read_gamepad(false, false);
 
-    if (VRC_PS2.Button(PSB_L2)) {
-        Serial.print("LY, RX: ");
-        Serial.print(VRC_PS2.Analog(PSS_LY), DEC); 
-        Serial.print(", "); Serial.println(VRC_PS2.Analog(PSS_RX));
+    if (VRC_PS2.ButtonPressed(PSB_L2)) {
+        info_monitor();
         delay(50);
     }
 
@@ -123,8 +124,8 @@ void ps2_ctrl() {
 
     //! @brief L3 PRESSED -> GEAR UP 
     if (VRC_PS2.ButtonPressed(PSB_L3)) {
-        if (gear < 4) {gear += 1; vibrate = 255;} 
-        else {gear = 0; vibrate = 255;}
+        if (gear < 4) {gear += 1;} 
+        else {gear = 0;}
 
         switch (gear)
         {
@@ -135,7 +136,7 @@ void ps2_ctrl() {
         default: case 0: MAX_PWM = 800; Serial.println("GEAR 0"); Serial.println("-> PWM = 800."); delay(50); break;
         }
     }
-    else if (VRC_PS2.ButtonReleased(PSB_L3)) {delay(100); vibrate = 0;}
+    // else if (VRC_PS2.ButtonReleased(PSB_L3)) {delay(100);}
 
     //! @brief R3 PRESSED -> GEAR DOWN  
     if (VRC_PS2.ButtonPressed(PSB_R3)) {
@@ -214,45 +215,53 @@ void pwm_calc() {
     byte v_LY = VRC_PS2.Analog(PSS_LY);
     byte v_RX = VRC_PS2.Analog(PSS_RX);
     int cmd = 0;
-    if ((v_LY >= 0) && (v_LY <= 60)) // forward
+    
+    // FORWARD
+    if ((v_LY >= JOY_ZONE.forward_low) && (v_LY <= JOY_ZONE.forward_high)) 
     {
-        pwm_left = (int16_t) map(v_LY, 0, 50, MAX_PWM, 50);
-        pwm_right = (int16_t) map(v_LY, 0, 50,MAX_PWM, 50);
-        dir_left = 0;
+        pwm_left  = (int16_t) map(v_LY, JOY_ZONE.forward_low, JOY_ZONE.forward_high, MAX_PWM, MIN_PWM);
+        pwm_right = (int16_t) map(v_LY, JOY_ZONE.forward_low, JOY_ZONE.forward_high, MAX_PWM, MIN_PWM);
+        dir_left  = 0;
         dir_right = 0;
-        Serial.println("moving forward..       "); 
-        Serial.print(pwm_left, DEC); Serial.print(","); Serial.println(pwm_right, DEC); 
+        
+        VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
+        VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
+        
+        Serial.print("moving forward (left, right): "); 
+        Serial.print(pwm_left, DEC); Serial.print(","); Serial.println(pwm_right, DEC);
         delay(50);
-    
-        VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
-        VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
-        
     } 
     
-    if ((v_LY >= 235) && (v_LY <= 255)) // backward
+    // BACKWARD
+    if ((v_LY >= JOY_ZONE.backward_low) && (v_LY <= JOY_ZONE.backward_high)) 
     {
-        pwm_left = (int16_t) MAX_PWM;
-        pwm_right = (int16_t) MAX_PWM;
-        dir_left = 1;
+        pwm_left  = (int16_t) map(v_LY, JOY_ZONE.backward_low, JOY_ZONE.backward_high, MIN_PWM, MAX_PWM);
+        pwm_right = (int16_t) map(v_LY, JOY_ZONE.backward_low, JOY_ZONE.backward_high, MIN_PWM, MAX_PWM);
+        dir_left  = 1;
         dir_right = 1;
-        Serial.println("moving backward.."); delay(50);
     
         VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
         VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         
+        Serial.print("moving backward (left, right): "); 
+        Serial.print(pwm_left, DEC); Serial.print(","); Serial.println(pwm_right, DEC);
+        delay(50);
     } 
     
-    if ((v_RX >= 0) && (v_RX <= 20)) // turning left 
+    // TURNING LEFT
+    if ((v_RX >= JOY_ZONE.left_low) && (v_RX <= JOY_ZONE.left_high)) // turning left 
     {
-        pwm_left = (int16_t) MAX_PWM;
-        pwm_right = (int16_t) MAX_PWM;
-        dir_left = 1;
+        pwm_left  = (int16_t) map(v_RX, JOY_ZONE.left_low, JOY_ZONE.left_high, MAX_PWM, MIN_PWM);
+        pwm_right = (int16_t) map(v_RX, JOY_ZONE.left_low, JOY_ZONE.left_high, MAX_PWM, MIN_PWM);
+        dir_left  = 1;
         dir_right = 0;
-        Serial.println("turning left.."); delay(50);
     
         VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
         VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         
+        Serial.print("turning left (-left, right): "); 
+        Serial.print(pwm_left, DEC); Serial.print(","); Serial.println(pwm_right, DEC);
+        delay(50);
     } 
 
     if ((v_RX >= 235) && (v_RX <= 255)) // turning right 
@@ -283,6 +292,41 @@ void pwm_calc() {
     }
 }
 
+void info_monitor() {
+    String current_obj;
+    uint16_t current_max;
+    int current_gear;
+
+    Serial.println("### INFOMATION MONITOR ###");
+    Serial.println("==========================");
+    Serial.print("Setting mode:\t\t"); Serial.println(mode, DEC);
+
+    switch (mode)
+    {
+    case 1:
+        current_obj = "THE SHOOTER";
+        current_max = PWM_U1;
+        current_gear = gear_s;
+        break;
+    
+    case 2:
+        current_obj = "THE ROLLER";
+        current_max = PWM_U2;
+        current_gear = gear_r;
+        break;
+    
+    default: case 0:
+        current_obj = "THE ROBOT";
+        current_max = MAX_PWM;
+        current_gear = gear;
+        break;
+    }
+    
+    Serial.print("OBJ currently is:\t"); Serial.println(current_obj);
+    Serial.print("GEAR of "); Serial.print(current_obj); Serial.print(":\t"); Serial.println(current_gear);
+    Serial.print("MAX_PWM of "); Serial.print(current_obj); Serial.print(":\t"); Serial.println(current_max);
+    if (mode == 2) {Serial.print("ROLLING DIRECTION:\t"); Serial.println(rolling_dir);}
+}
 
 void setup() {
     Serial.begin(9600);
