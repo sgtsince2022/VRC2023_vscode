@@ -1,10 +1,18 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+// OLD - 2022
 #define PS2_DAT 12 // MISO
 #define PS2_CMD 13 // MOSI
 #define PS2_SEL 15 // SS
 #define PS2_CLK 14 // SLK
+
+// NEW - 2023
+// #define PS2_DAT 25 //MISO  
+// #define PS2_CMD 0 //MOSI  
+// #define PS2_SEL 15 //SS    
+// #define PS2_CLK 14 //SLK  
+
 #define pressures false
 #define rumble true 
 
@@ -25,6 +33,17 @@ struct entry_points {
     int forward_low, forward_high, backward_low, backward_high, left_low, left_high, right_low, right_high;
     int idle_x_low, idle_x_high, idle_y_low, idle_y_high;
 };
+
+//! @brief MAX_PWM values for MOVING's gear
+struct gear {
+    int16_t max_0 = 800;    // base - neutral
+    int16_t& init_MAX_PWM = this->max_0;
+    int16_t max_1 = 1100;   // gear 1
+    int16_t max_2 = 1400;   // gear 2
+    int16_t max_3 = 1700;   // gear 3
+    int16_t max_4 = 2000;   // gear 4
+    int16_t min = 50;
+} GEAR_M;
 
 #define LEFT_MOTOR 1
 #define RIGHT_MOTOR 2
