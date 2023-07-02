@@ -7,7 +7,7 @@
 
 PS2X VRC_PS2;
 DCMotor VRC_Motor;
-Servo_Motor VRC_Reloader, VRC_Gate;   
+Servo_Motor VRC_Servo;   
                     /*fl, fh, b_l, b_h,ll, lh, r_l, r_h, xl, ixh, yl, iyh*/
 entry_points JOY_ZONE {0, 85, 170, 255, 0, 85, 170, 255, 85, 170, 85, 170};
 
@@ -17,7 +17,9 @@ int16_t MIN_PWM = GEAR_M.min;
 int16_t PWM_U1  = 4000;
 int16_t PWM_U2  = 4000; 
 int gear = 0;
-bool dir_left, dir_right, rolling_dir;
+bool dir_left, dir_right, rolling_dir, roller_running = 0;
+int angle_gate = 40, angle_reloader = 50;
+bool mode_auto = 0;
 int16_t pwm_left, pwm_right;
 byte vibrate = 0;
 
@@ -54,37 +56,22 @@ void ps2_ctrl() {
 
     //! @brief L2 PRESSED -> INFOMATION MONITOR
     if (VRC_PS2.ButtonPressed(PSB_L2)) {
-        info_monitor();
-        delay(50);
-    }
-
-    //! @brief PINK/SQUARE PRESSED -> ACTIVATE THE RELOADER
-    static bool status_RELOADER = 0;
-    if (VRC_PS2.ButtonPressed(PSB_PINK)) {
-        if (status_RELOADER == 0) { // DEGREE: 0 -> 60
-            VRC_Reloader.Angle(60, 1);
-            Serial.println("RELOADING.. (0 -> 60) - STAGE: SHOOTER SHOOTS NOW");
-            Serial.println("================================================="); 
-            delay(50);
-        } else { // // DEGREE: 60 -> 0
-            VRC_Reloader.Angle(0, 1);
-            Serial.println("RELOADING.. (60 -> 0) - STAGE: INSERT");
-            Serial.println("====================================="); 
+        if (roller_running != 1) {
+            info_monitor();
             delay(50);
         }
-        status_RELOADER = !status_RELOADER;
     }
-    
+
     //! @brief GREEN/TRIANGLE PRESSED -> ACTIVATE THE GATE
     static bool status_GATE = 0;
     if (VRC_PS2.ButtonPressed(PSB_GREEN)) {
-        if (status_GATE == 0) { // DEGREE: 0 -> 80
-            VRC_Gate.Angle(80, 2);
+        if (status_GATE == 0) { // DEGREE: 0 -> angle_gate
+            VRC_Servo.Angle(angle_gate, THE_GATE);
             Serial.println("OPENING.. BALLS into RELOADER");
             Serial.println("============================="); 
             delay(50);
-        } else { // // DEGREE: 80 -> 0
-            VRC_Gate.Angle(0, 2);
+        } else { // // DEGREE: angle_gate -> 0
+            VRC_Servo.Angle(0, THE_GATE);
             Serial.println("CLOSING.. BALLS into STORAGE");
             Serial.println("============================"); 
             delay(50);
@@ -92,11 +79,24 @@ void ps2_ctrl() {
         status_GATE = !status_GATE;
     }
 
+    //! @brief PINK/SQUARE PRESSED -> ACTIVATE THE RELOADER
+    if (VRC_PS2.ButtonPressed(PSB_PINK)) {
+            VRC_Servo.Angle(0, THE_RELOADER);
+            delay(500);
+            VRC_Servo.Angle(angle_reloader, THE_RELOADER);
+            
+            Serial.println("RELOADING..");
+            Serial.println("==========="); 
+            delay(50);
+    }
+    
+
     //! @brief BLUE/CROSS PRESSED -> TOGGLE THE SHOOTER(S)
     static bool status_SHOOTER = 0;
     if (VRC_PS2.ButtonPressed(PSB_BLUE)) {
         if (status_SHOOTER == 0) { // shooter on
             VRC_Motor.Run(THE_SHOOTER, PWM_U1, 0);
+            delay(500); // wait for the shooter to reach balance speed
             Serial.println("THE SHOOTER -> ON"); 
             Serial.println("================="); 
             delay(50);
@@ -109,38 +109,112 @@ void ps2_ctrl() {
         status_SHOOTER = !status_SHOOTER;
     }
     
-    //! @brief R1 PRESSED -> CHANGE THE DIRECTION OF THE ROLLER PART
-    static bool status_rolling_direction = 1;
-    if (VRC_PS2.ButtonPressed(PSB_R1)) {
-        if (status_rolling_direction == 1) { // rolling dir = 1
-            rolling_dir = 1;
-            Serial.println("ROLLING DIRECTION -> 1"); 
-            Serial.println("======================"); 
-            delay(50);
-        } else { // rolling dir = 0
-            rolling_dir = 0;
-            Serial.println("ROLLING DIRECTION -> 0"); 
-            Serial.println("======================"); 
-            delay(50);
+    //! @brief L1 PRESSED -> TOGGLE THE ROLLER PART - DIRECTION TO 1 - INTAKE
+    
+    if (VRC_PS2.ButtonPressed(PSB_L1)) {
+        if (roller_running == 0) {
+            rolling_dir = 1; // intake
+            VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
+            roller_running = 1;
+        
+            Serial.println("INTAKING..");
+            Serial.println("=========="); delay(50);
+        } else if (roller_running == 1) {
+            if (rolling_dir == 0) {
+                rolling_dir = 1; // intake
+                VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
+                roller_running = 1;
+        
+                Serial.println("INTAKING..");
+                Serial.println("=========="); delay(50);
+            } else {
+                VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
+                roller_running = 0;
+
+                Serial.println("ROLLER STOP");
+                Serial.println("==========="); delay(50);
+            }
         }
-        status_rolling_direction = !status_rolling_direction;
     }
 
-    //! @brief ORANGE/CIRCLE PRESSED -> TOGGLE THE ROLLER PART
-    static bool status_rollerpart = 0;
-    if (VRC_PS2.ButtonPressed(PSB_CIRCLE)) {
-        if (status_rollerpart == 0) { // roller on
+    // static bool status_rollerpart_r1 = 0;
+    // if (VRC_PS2.ButtonPressed(PSB_R1)) {
+    //     rolling_dir = 1;
+    //     if (status_rollerpart_r1 == 0) { // roller on
+    //         VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
+    //         roller_running = 1;
+            
+    //         Serial.print("THE ROLLER -> ON, DIR = "); Serial.println(rolling_dir, DEC); 
+    //         Serial.println("================"); 
+    //         delay(50);
+    //     } else { // roller off
+    //         VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
+    //         roller_running = 0;
+            
+    //         Serial.print("THE ROLLER -> OFF, DIR = "); Serial.println(rolling_dir, DEC); 
+    //         Serial.println("================="); 
+    //         delay(50);
+    //     }
+    //     status_rollerpart_r1 = !status_rollerpart_r1;
+    // }
+
+    //! @brief R1 PRESSED -> TOGGLE THE ROLLER PART - DIRECTION TO 0 - RELEASE
+    
+    if (VRC_PS2.ButtonPressed(PSB_R1)) {
+        if (roller_running == 0) {
+            rolling_dir = 0; // release
             VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
-            Serial.println("THE ROLLER -> ON"); 
-            Serial.println("================"); 
-            delay(50);
-        } else { // roller off
-            VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
-            Serial.println("THE ROLLER -> OFF"); 
-            Serial.println("================="); 
-            delay(50);
+            roller_running = 1;
+        
+            Serial.println("RELEASING..");
+            Serial.println("==========="); delay(50);
+        } else if (roller_running == 1) {
+            if (rolling_dir == 1) { // intaking ? releasing : off
+                rolling_dir = 0; // release
+                VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
+                roller_running = 1;
+        
+                Serial.println("RELEASING..");
+                Serial.println("==========="); delay(50);
+            } else {
+                VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
+                roller_running = 0;
+
+                Serial.println("ROLLER STOP");
+                Serial.println("==========="); delay(50);
+            }
         }
-        status_rollerpart = !status_rollerpart;
+    }
+
+    // static bool status_rollerpart_l1 = 0;
+    // if (VRC_PS2.ButtonPressed(PSB_L1)) {
+    //     rolling_dir = 0;
+
+    //     if (status_rollerpart_l1 == 0) { // roller on
+    //         VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
+    //         roller_running = 1;
+    //         Serial.print("THE ROLLER -> ON, DIR = "); Serial.println(rolling_dir, DEC); 
+    //         Serial.println("================"); 
+    //         delay(50);
+    //     } else { // roller off
+    //         VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
+    //         roller_running = 0;
+    //         Serial.print("THE ROLLER -> OFF, DIR = "); Serial.println(rolling_dir, DEC); 
+    //         Serial.println("================="); 
+    //         delay(50);
+    //     }
+    //     status_rollerpart_l1 = !status_rollerpart_l1;
+    // }
+
+    //! @brief L2 PRESSED -> TURN OFF THE ROLLER
+    if (VRC_PS2.ButtonPressed(PSB_L2)) {
+        if (roller_running == 1) {
+            VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
+            roller_running = 0;
+        
+            Serial.println("ROLLER STOP");
+            Serial.println("==========="); delay(50);
+        }
     }
 
     //! @brief L3 PRESSED -> GEAR UP 
@@ -150,12 +224,16 @@ void ps2_ctrl() {
 
         switch (gear)
         {
-        case 1: MAX_PWM = 1000; Serial.println("GEAR 1"); Serial.println("-> PWM = 1000."); delay(50); break;
-        case 2: MAX_PWM = 1200; Serial.println("GEAR 2"); Serial.println("-> PWM = 1200."); delay(50); break;
-        case 3: MAX_PWM = 1300; Serial.println("GEAR 3"); Serial.println("-> PWM = 1300."); delay(50); break;
-        case 4: MAX_PWM = 1500; Serial.println("GEAR 4"); Serial.println("-> PWM = 1500."); delay(50); break;
-        default: case 0: MAX_PWM = 800; Serial.println("GEAR 0"); Serial.println("-> PWM = 800."); delay(50); break;
+        case 1: Serial.println("GEAR 1"); MAX_PWM = GEAR_M.max_1; Serial.print(" -> PWM = "); Serial.println(GEAR_M.max_1, DEC); break;
+        case 2: Serial.println("GEAR 2"); MAX_PWM = GEAR_M.max_2; Serial.print(" -> PWM = "); Serial.println(GEAR_M.max_2, DEC); break;
+        case 3: Serial.println("GEAR 3"); MAX_PWM = GEAR_M.max_3; Serial.print(" -> PWM = "); Serial.println(GEAR_M.max_3, DEC); break;
+        case 4: Serial.println("GEAR 4"); MAX_PWM = GEAR_M.max_4; Serial.print(" -> PWM = "); Serial.println(GEAR_M.max_4, DEC); break;
+        default: 
+        case 0: Serial.println("GEAR 0"); MAX_PWM = GEAR_M.max_0; Serial.println(" -> PWM = "); Serial.println(GEAR_M.max_0, DEC); break;
         }
+
+        Serial.println("==================");
+        delay(50);
     }
 
     //! @brief R3 PRESSED -> GEAR DOWN  
@@ -165,17 +243,19 @@ void ps2_ctrl() {
 
         switch (gear)
         {
-        case 1: MAX_PWM = 1000; Serial.println("GEAR 1"); Serial.println("-> PWM = 1000."); delay(50); break;
-        case 2: MAX_PWM = 1200; Serial.println("GEAR 2"); Serial.println("-> PWM = 1200."); delay(50); break;
-        case 3: MAX_PWM = 1300; Serial.println("GEAR 3"); Serial.println("-> PWM = 1300."); delay(50); break;
-        case 4: MAX_PWM = 1500; Serial.println("GEAR 4"); Serial.println("-> PWM = 1500."); delay(50); break;
-        default: case 0: MAX_PWM = 800; Serial.println("GEAR 0"); Serial.println("-> PWM = 800."); delay(50); break;
+        case 1: Serial.println("GEAR 1"); MAX_PWM = GEAR_M.max_1; Serial.print(" -> PWM = "); Serial.println(GEAR_M.max_1, DEC); break;
+        case 2: Serial.println("GEAR 2"); MAX_PWM = GEAR_M.max_2; Serial.print(" -> PWM = "); Serial.println(GEAR_M.max_2, DEC); break;
+        case 3: Serial.println("GEAR 3"); MAX_PWM = GEAR_M.max_3; Serial.print(" -> PWM = "); Serial.println(GEAR_M.max_3, DEC); break;
+        case 4: Serial.println("GEAR 4"); MAX_PWM = GEAR_M.max_4; Serial.print(" -> PWM = "); Serial.println(GEAR_M.max_4, DEC); break;
+        default: 
+        case 0: Serial.println("GEAR 0"); MAX_PWM = GEAR_M.max_0; Serial.println(" -> PWM = "); Serial.println(GEAR_M.max_0, DEC); break;
         }
+
+        Serial.println("==================");
+        delay(50);
     }
-
-    
-
 }
+
 
 void pwm_calc() {
     byte v_LY = VRC_PS2.Analog(PSS_LY);
@@ -268,11 +348,10 @@ void info_monitor() {
     int current_gear = gear;
 
     Serial.println("### INFOMATION MONITOR ###");
-    Serial.println("==========================");
 
     Serial.print("GEAR of "); Serial.print(current_obj); Serial.print(":\t"); Serial.println(current_gear);
     Serial.print("MAX_PWM of "); Serial.print(current_obj); Serial.print(":\t"); Serial.println(current_max);
-    Serial.println("=========================="); 
+    Serial.println(); 
     delay(50);
 }
 
@@ -281,8 +360,9 @@ void setup() {
     ps2_init(); 
     info_monitor();
     VRC_Motor.Init();
-    VRC_Reloader.Init();
-    VRC_Gate.Init();
+    VRC_Servo.Init();
+    VRC_Servo.Angle(angle_reloader,THE_RELOADER);
+    VRC_Servo.Angle(angle_gate, THE_GATE);
 }
 
 void loop() {

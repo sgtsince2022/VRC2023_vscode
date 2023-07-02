@@ -36,18 +36,23 @@ struct entry_points {
 
 //! @brief MAX_PWM values for MOVING's gear
 struct gear {
-    int16_t max_0 = 800;    // base - neutral
+    int16_t max_0 = 1100;    // base - neutral
     int16_t& init_MAX_PWM = this->max_0;
-    int16_t max_1 = 1100;   // gear 1
-    int16_t max_2 = 1400;   // gear 2
-    int16_t max_3 = 1700;   // gear 3
-    int16_t max_4 = 2000;   // gear 4
-    int16_t min = 50;
+    int16_t max_1 = 1500;   // gear 1
+    int16_t max_2 = 2000;   // gear 2
+    int16_t max_3 = 2500;   // gear 3
+    int16_t max_4 = 3000;   // gear 4
+    int16_t min = 0;
 } GEAR_M;
 
+// MOTOR NO.
 #define LEFT_MOTOR 1
 #define RIGHT_MOTOR 2
 #define THE_SHOOTER 3
 #define THE_ROLLER 4
+
+// SERVO NO.
+#define THE_RELOADER 1 
+#define THE_GATE 2
 
 #endif

@@ -12,3 +12,31 @@ Code for VRC2023
 - DCMotor (in EEB.h)
 - Servo_Motor (in EEB.h)
 
+---
+
+## MANUAL INSTRUCTIONS  
+
+1. **MOVING SYSTEM**  
+
+- *LEFT JOYSTICK* : ***UP/DOWN*** for **FORWARD/BACKWARD**.
+- *RIGHT JOYSTICK* : ***LEFT/RIGHT*** for **LEFT/RIGHT**.  
+
+2. **GEARS SYSTEM**  
+
+> *BASE* : NEUTRAL = 0
+
+- *[L3]* : GEAR **UP** (+1).  
+- *[R3]* : GEAR **DOWN** (-1).  
+
+> if in GEAR 4, GEAR UP = 0.
+
+3. **UTILITIES**  
+
+- *[CROSS / BLUE]* : turn ***ON*** the **SHOOTER**.  
+- *[SQUARE / PINK]* : ***MANUAL*** RELOAD.  
+- *[CIRCLE / ORANGE]* : ***AUTO*** RELOAD.  
+- *[TRIANGLE / GREEN]* : ***TOGGLE*** the **GATE**.  
+
+- *[L1]* : **INTAKE**.  
+- *[R1]* : **RELEASE**.  
+- *[L2]* : turn ***OFF*** the **ROLLER**.  
