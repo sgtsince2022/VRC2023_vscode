@@ -1,8 +1,8 @@
 #include <Arduino.h>
-#include<PS2X_lib.h>
-#include<EEB.h>
-#include<main.h>
-
+#include <PS2X_lib.h>
+#include <EEB.h>
+#include <main.h>
+#include <malloc.h>
 
 
 PS2X VRC_PS2;
@@ -52,7 +52,7 @@ void ps2_init() {
 }
 
 void ps2_ctrl() {
-    VRC_PS2.read_gamepad(false, false);
+    // VRC_PS2.read_gamepad(false, false);
 
     //! @brief L2 PRESSED -> INFOMATION MONITOR
     if (VRC_PS2.ButtonPressed(PSB_L2)) {
@@ -355,14 +355,41 @@ void info_monitor() {
     delay(50);
 }
 
+TimerHandle_t xTimers[2];
+unsigned long count = 0;
+void timerCallBack(TimerHandle_t xTimer){
+    configASSERT(xTimer);
+    int ulCount = (uint32_t) pvTimerGetTimerID(xTimer);
+
+    //timer 0 reading gamepad
+    if(ulCount==0){
+       // Task 1
+        VRC_PS2.read_gamepad(0, 0); // khong co PS2 thi ham nay khong chay thanh cong, bi treo
+    }
+
+    //timer 1 heart beat
+    if(ulCount==1){
+        Serial.print("Hello ESP: ");
+        Serial.println(count);
+        count++;
+    }
+}
 void setup() {
     Serial.begin(9600); Serial.println("VIA B successfully initiated.");
     ps2_init(); 
     info_monitor();
+    // Create Timer
+    xTimers[ 0 ] = xTimerCreate("Timer PS2",pdMS_TO_TICKS(100),pdTRUE,( void * ) 0,timerCallBack);
+    xTimerStart(xTimers[0],0);
+
+    xTimers[ 1 ] = xTimerCreate("Timer test",pdMS_TO_TICKS(1000),pdTRUE,( void * ) 1,timerCallBack);
+    xTimerStart(xTimers[1],0);
+
     VRC_Motor.Init();
     VRC_Servo.Init();
     VRC_Servo.Angle(angle_reloader,THE_RELOADER);
     VRC_Servo.Angle(angle_gate, THE_GATE);
+
 }
 
 void loop() {

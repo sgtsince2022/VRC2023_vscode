@@ -2,16 +2,16 @@
 #define _MAIN_H_
 
 // OLD - 2022
-#define PS2_DAT 12 // MISO
-#define PS2_CMD 13 // MOSI
-#define PS2_SEL 15 // SS
-#define PS2_CLK 14 // SLK
+// #define PS2_DAT 12 // MISO
+// #define PS2_CMD 13 // MOSI
+// #define PS2_SEL 15 // SS
+// #define PS2_CLK 14 // SLK
 
 // NEW - 2023
-// #define PS2_DAT 25 //MISO  
-// #define PS2_CMD 0 //MOSI  
-// #define PS2_SEL 15 //SS    
-// #define PS2_CLK 14 //SLK  
+#define PS2_DAT 25 //MISO  
+#define PS2_CMD 0 //MOSI  
+#define PS2_SEL 15 //SS    
+#define PS2_CLK 14 //SLK  
 
 #define pressures false
 #define rumble true 
