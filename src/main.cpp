@@ -357,14 +357,23 @@ void info_monitor() {
 
 TimerHandle_t xTimers[2];
 unsigned long count = 0;
+bool running_permission = 0;
 void timerCallBack(TimerHandle_t xTimer){
     configASSERT(xTimer);
     int ulCount = (uint32_t) pvTimerGetTimerID(xTimer);
 
-    //timer 0 reading gamepad
+    // timer 0 reading gamepad
+    // khong co PS2 thi ham nay khong chay thanh cong, bi treo
     if(ulCount==0){
        // Task 1
-        VRC_PS2.read_gamepad(0, 0); // khong co PS2 thi ham nay khong chay thanh cong, bi treo
+        if(VRC_PS2.read_gamepad(0, 0)){
+            running_permission = 1;
+        }
+        else{
+            running_permission = 0;
+        }
+
+        // VRC_PS2.read_gamepad(0, 0);
     }
 
     //timer 1 heart beat
@@ -378,8 +387,9 @@ void setup() {
     Serial.begin(9600); Serial.println("VIA B successfully initiated.");
     ps2_init(); 
     info_monitor();
+
     // Create Timer
-    xTimers[ 0 ] = xTimerCreate("Timer PS2",pdMS_TO_TICKS(100),pdTRUE,( void * ) 0,timerCallBack);
+    xTimers[ 0 ] = xTimerCreate("Timer PS2",pdMS_TO_TICKS(50),pdTRUE,( void * ) 0,timerCallBack);
     xTimerStart(xTimers[0],0);
 
     xTimers[ 1 ] = xTimerCreate("Timer test",pdMS_TO_TICKS(1000),pdTRUE,( void * ) 1,timerCallBack);
@@ -393,6 +403,11 @@ void setup() {
 }
 
 void loop() {
-    ps2_ctrl();
-    pwm_calc();
+    if(running_permission){
+        ps2_ctrl();
+        pwm_calc();
+    }
+
+    // ps2_ctrl();
+    // pwm_calc();
 }
