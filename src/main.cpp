@@ -3,13 +3,14 @@
 #include <EEB.h>
 #include <main.h>
 #include <malloc.h>
-
+#include <FastLED.h>
 
 PS2X VRC_PS2;
 DCMotor VRC_Motor;
 Servo_Motor VRC_Servo;   
                     /*fl, fh, b_l, b_h,ll, lh, r_l, r_h, xl, ixh, yl, iyh*/
 entry_points JOY_ZONE {0, 85, 170, 255, 0, 85, 170, 255, 85, 170, 85, 170};
+CRGB  VRC_leds[NUM_LEDS];
 
 
 int16_t MAX_PWM = GEAR_M.init_MAX_PWM;
@@ -22,6 +23,8 @@ int angle_gate = 40, angle_reloader = 50;
 bool mode_auto = 0;
 int16_t pwm_left, pwm_right;
 byte vibrate = 0;
+
+void led_all_color(int red, int green, int blue);
 
 void ps2_init() {
     Serial.println("connecting to ps2..");
@@ -70,14 +73,14 @@ void ps2_ctrl() {
     if (VRC_PS2.ButtonPressed(PSB_GREEN)) {
         if (status_GATE == 0) { // DEGREE: 0 -> angle_gate
             VRC_Servo.Angle(angle_gate, THE_GATE);
-            Serial.println("OPENING.. BALLS into RELOADER");
-            Serial.println("============================="); 
-            delay(50);
+            // Serial.println("OPENING.. BALLS into RELOADER");
+            // Serial.println("============================="); 
+            // delay(50);
         } else { // // DEGREE: angle_gate -> 0
             VRC_Servo.Angle(0, THE_GATE);
-            Serial.println("CLOSING.. BALLS into STORAGE");
-            Serial.println("============================"); 
-            delay(50);
+            // Serial.println("CLOSING.. BALLS into STORAGE");
+            // Serial.println("============================"); 
+            // delay(50);
         }
         status_GATE = !status_GATE;
     }
@@ -85,11 +88,11 @@ void ps2_ctrl() {
     //! @brief PINK/SQUARE PRESSED -> ACTIVATE THE RELOADER
     if (VRC_PS2.ButtonPressed(PSB_PINK)) {
             VRC_Servo.Angle(0, THE_RELOADER);
-            delay(500);
+            vTaskDelay(pdMS_TO_TICKS(500));
             VRC_Servo.Angle(angle_reloader, THE_RELOADER);
-            Serial.println("RELOADING..");
-            Serial.println("==========="); 
-            delay(50);
+            // Serial.println("RELOADING..");
+            // Serial.println("==========="); 
+            // delay(50);
     }
     
 
@@ -118,22 +121,22 @@ void ps2_ctrl() {
             VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
             roller_running = 1;
         
-            Serial.println("INTAKING..");
-            Serial.println("=========="); delay(50);
+            // Serial.println("INTAKING..");
+            // Serial.println("=========="); delay(50);
         } else if (roller_running == 1) {
             if (rolling_dir == 0) {
                 rolling_dir = 1; // intake
                 VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
                 roller_running = 1;
         
-                Serial.println("INTAKING..");
-                Serial.println("=========="); delay(50);
+                // Serial.println("INTAKING..");
+                // Serial.println("=========="); delay(50);
             } else {
                 VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
                 roller_running = 0;
 
-                Serial.println("ROLLER STOP");
-                Serial.println("==========="); delay(50);
+                // Serial.println("ROLLER STOP");
+                // Serial.println("==========="); delay(50);
             }
         }
     }
@@ -167,22 +170,22 @@ void ps2_ctrl() {
             VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
             roller_running = 1;
         
-            Serial.println("RELEASING..");
-            Serial.println("==========="); delay(50);
+            // Serial.println("RELEASING..");
+            // Serial.println("==========="); delay(50);
         } else if (roller_running == 1) {
             if (rolling_dir == 1) { // intaking ? releasing : off
                 rolling_dir = 0; // release
                 VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
                 roller_running = 1;
         
-                Serial.println("RELEASING..");
-                Serial.println("==========="); delay(50);
+                // Serial.println("RELEASING..");
+                // Serial.println("==========="); delay(50);
             } else {
                 VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
                 roller_running = 0;
 
-                Serial.println("ROLLER STOP");
-                Serial.println("==========="); delay(50);
+                // Serial.println("ROLLER STOP");
+                // Serial.println("==========="); delay(50);
             }
         }
     }
@@ -213,8 +216,8 @@ void ps2_ctrl() {
             VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
             roller_running = 0;
         
-            Serial.println("ROLLER STOP");
-            Serial.println("==========="); delay(50);
+            // Serial.println("ROLLER STOP");
+            // Serial.println("==========="); delay(50);
         }
     }
 
@@ -233,8 +236,8 @@ void ps2_ctrl() {
         case 0: Serial.println("GEAR 0"); MAX_PWM = GEAR_M.max_0; Serial.println(" -> PWM = "); Serial.println(GEAR_M.max_0, DEC); break;
         }
 
-        Serial.println("==================");
-        delay(50);
+        // Serial.println("==================");
+        // delay(50);
     }
 
     //! @brief R3 PRESSED -> GEAR DOWN  
@@ -252,8 +255,8 @@ void ps2_ctrl() {
         case 0: Serial.println("GEAR 0"); MAX_PWM = GEAR_M.max_0; Serial.println(" -> PWM = "); Serial.println(GEAR_M.max_0, DEC); break;
         }
 
-        Serial.println("==================");
-        delay(50);
+        // Serial.println("==================");
+        // delay(50);
     }
     
     //Auto shooting
@@ -385,9 +388,18 @@ void timerCallBack(TimerHandle_t xTimer){
 
     //timer 1 heart beat
     if(ulCount==1){
-        Serial.print("Hello ESP: ");
-        Serial.println(count);
-        count++;
+        // Serial.print("Hello ESP: ");
+        // Serial.println(count);
+        // count++;
+        if(pwm_left>0 || pwm_right >0){
+            led_all_color(180,180,0); //Yelow running
+        }
+        else if(shooting_pwm>0){
+            led_all_color(100,0,0); //Red shooting
+        }
+        else{
+            led_all_color(0,180,0); //Green Waiting
+        }
     }
 
     //timer 2 acceleration shooting
@@ -423,16 +435,31 @@ void timerCallBack(TimerHandle_t xTimer){
         }
     }
 }
+
+void led_all_color(int red, int green, int blue){
+  for(int i=0;i<10;i++){
+    VRC_leds[i] = CRGB(red, green, blue);
+    FastLED.show();
+  }
+}
+
 void setup() {
     Serial.begin(9600); Serial.println("VIA B successfully initiated.");
+
+    // led config
+    FastLED.addLeds<WS2812, LED_PIN, GRB>(VRC_leds, NUM_LEDS);
+    led_all_color(100,0,100); //purple
+
     ps2_init(); 
     info_monitor();
+
+    led_all_color(0,180,0); //green, done Init
 
     // Create Timer
     xTimers[ 0 ] = xTimerCreate("Timer PS2",pdMS_TO_TICKS(50),pdTRUE,( void * ) 0,timerCallBack);
     xTimerStart(xTimers[0],0);
 
-    xTimers[ 1 ] = xTimerCreate("Timer test",pdMS_TO_TICKS(1000),pdTRUE,( void * ) 1,timerCallBack);
+    xTimers[ 1 ] = xTimerCreate("Timer test",pdMS_TO_TICKS(500),pdTRUE,( void * ) 1,timerCallBack);
     xTimerStart(xTimers[1],0);
 
     xTimers[ 2 ] = xTimerCreate("Timer accel shoot",pdMS_TO_TICKS(50),pdTRUE,( void * ) 2,timerCallBack);

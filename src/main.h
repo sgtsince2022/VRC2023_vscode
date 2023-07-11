@@ -59,4 +59,17 @@ struct gear {
 #define ANGLE_LOAD 50
 #define ANGLE_SHOOT 0 
 
+// LED
+#define NUM_LEDS 9
+#define LED_PIN 32
+
+enum led_color_t{
+    RED,
+    BLUE,
+    GREEN,
+    YELLOW,
+    PURPLE,
+    WHITE
+};
+
 #endif
