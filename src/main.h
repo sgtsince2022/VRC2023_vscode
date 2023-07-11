@@ -55,4 +55,8 @@ struct gear {
 #define THE_RELOADER 1 
 #define THE_GATE 2
 
+// ANGLE 
+#define ANGLE_LOAD 50
+#define ANGLE_SHOOT 0 
+
 #endif

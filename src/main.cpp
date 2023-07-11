@@ -51,6 +51,9 @@ void ps2_init() {
     }
 }
 
+static bool status_SHOOTER = 0;
+static bool status_GATE = 0;
+static bool status_AUTO = 0;
 void ps2_ctrl() {
     // VRC_PS2.read_gamepad(false, false);
 
@@ -63,7 +66,7 @@ void ps2_ctrl() {
     }
 
     //! @brief GREEN/TRIANGLE PRESSED -> ACTIVATE THE GATE
-    static bool status_GATE = 0;
+    
     if (VRC_PS2.ButtonPressed(PSB_GREEN)) {
         if (status_GATE == 0) { // DEGREE: 0 -> angle_gate
             VRC_Servo.Angle(angle_gate, THE_GATE);
@@ -84,7 +87,6 @@ void ps2_ctrl() {
             VRC_Servo.Angle(0, THE_RELOADER);
             delay(500);
             VRC_Servo.Angle(angle_reloader, THE_RELOADER);
-            
             Serial.println("RELOADING..");
             Serial.println("==========="); 
             delay(50);
@@ -92,25 +94,24 @@ void ps2_ctrl() {
     
 
     //! @brief BLUE/CROSS PRESSED -> TOGGLE THE SHOOTER(S)
-    static bool status_SHOOTER = 0;
+    
     if (VRC_PS2.ButtonPressed(PSB_BLUE)) {
-        if (status_SHOOTER == 0) { // shooter on
-            VRC_Motor.Run(THE_SHOOTER, PWM_U1, 0);
-            delay(500); // wait for the shooter to reach balance speed
-            Serial.println("THE SHOOTER -> ON"); 
-            Serial.println("================="); 
-            delay(50);
-        } else { // shooter off
-            VRC_Motor.Run(THE_SHOOTER, 0, 0);
-            Serial.println("THE SHOOTER -> OFF"); 
-            Serial.println("=================="); 
-            delay(50);
-        }
+        // if (status_SHOOTER == 0) { // shooter on
+        //     VRC_Motor.Run(THE_SHOOTER, PWM_U1, 0);
+        //     delay(500); // wait for the shooter to reach balance speed
+        //     Serial.println("THE SHOOTER -> ON"); 
+        //     Serial.println("================="); 
+        //     delay(50);
+        // } else { // shooter off
+        //     VRC_Motor.Run(THE_SHOOTER, 0, 0);
+        //     Serial.println("THE SHOOTER -> OFF"); 
+        //     Serial.println("=================="); 
+        //     delay(50);
+        // }
         status_SHOOTER = !status_SHOOTER;
     }
     
     //! @brief L1 PRESSED -> TOGGLE THE ROLLER PART - DIRECTION TO 1 - INTAKE
-    
     if (VRC_PS2.ButtonPressed(PSB_L1)) {
         if (roller_running == 0) {
             rolling_dir = 1; // intake
@@ -254,6 +255,12 @@ void ps2_ctrl() {
         Serial.println("==================");
         delay(50);
     }
+    
+    //Auto shooting
+    if (VRC_PS2.ButtonPressed(PSB_PAD_UP)){
+        status_AUTO = !status_AUTO;
+    }
+
 }
 
 
@@ -270,8 +277,8 @@ void pwm_calc() {
         dir_left  = 0;
         dir_right = 0;
         
-        VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
-        VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
+        // VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
+        // VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         
         Serial.print("moving forward (left, right): "); 
         Serial.print(pwm_left, DEC); Serial.print(","); Serial.println(pwm_right, DEC);
@@ -286,8 +293,8 @@ void pwm_calc() {
         dir_left  = 1;
         dir_right = 1;
     
-        VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
-        VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
+        // VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
+        // VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         
         Serial.print("moving backward (left, right): "); 
         Serial.print(pwm_left, DEC); Serial.print(","); Serial.println(pwm_right, DEC);
@@ -302,8 +309,8 @@ void pwm_calc() {
         dir_left  = 1;
         dir_right = 0;
     
-        VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
-        VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
+        // VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
+        // VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         
         Serial.print("turning left (-left, right): "); 
         Serial.print(pwm_left, DEC); Serial.print(","); Serial.println(pwm_right, DEC);
@@ -318,12 +325,12 @@ void pwm_calc() {
         dir_left = 0;
         dir_right = 1;
     
-        VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
-        VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
+        // VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
+        // VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         
         Serial.print("turning right (left, -right): "); 
         Serial.print(pwm_left, DEC); Serial.print(","); Serial.println(pwm_right, DEC);
-        delay(50);
+        // delay(50);
     } 
     
     // IDLING 
@@ -335,9 +342,8 @@ void pwm_calc() {
         dir_left = 0;
         dir_right = 0;
     
-        VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
-        VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
-        
+        // VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
+        // VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         delay(50);
     }
 }
@@ -355,9 +361,10 @@ void info_monitor() {
     delay(50);
 }
 
-TimerHandle_t xTimers[2];
+TimerHandle_t xTimers[4];
 unsigned long count = 0;
 bool running_permission = 0;
+uint16_t shooting_pwm = 0;
 void timerCallBack(TimerHandle_t xTimer){
     configASSERT(xTimer);
     int ulCount = (uint32_t) pvTimerGetTimerID(xTimer);
@@ -382,6 +389,39 @@ void timerCallBack(TimerHandle_t xTimer){
         Serial.println(count);
         count++;
     }
+
+    //timer 2 acceleration shooting
+    if(ulCount==2){
+        if(status_SHOOTER == 1){
+            if(shooting_pwm < PWM_U1){
+                shooting_pwm += 200;
+            }
+            else{
+                shooting_pwm = PWM_U1;
+            }
+        }
+        else{
+            shooting_pwm = 0;
+        }
+    }
+
+    //timer 3 auto shooting 
+    if(ulCount==3){
+        if(status_AUTO == 1){
+            //Auto shoot
+            if(angle_reloader==0){
+                VRC_Servo.Angle(ANGLE_LOAD, THE_RELOADER);
+                angle_reloader = ANGLE_LOAD;
+            }
+            else{
+                VRC_Servo.Angle(ANGLE_SHOOT, THE_RELOADER);
+                angle_reloader = ANGLE_SHOOT;
+            }
+        }
+        else{
+            VRC_Servo.Angle(ANGLE_LOAD, THE_RELOADER);
+        }
+    }
 }
 void setup() {
     Serial.begin(9600); Serial.println("VIA B successfully initiated.");
@@ -395,9 +435,15 @@ void setup() {
     xTimers[ 1 ] = xTimerCreate("Timer test",pdMS_TO_TICKS(1000),pdTRUE,( void * ) 1,timerCallBack);
     xTimerStart(xTimers[1],0);
 
+    xTimers[ 2 ] = xTimerCreate("Timer accel shoot",pdMS_TO_TICKS(50),pdTRUE,( void * ) 2,timerCallBack);
+    xTimerStart(xTimers[2],0);
+
+    xTimers[ 3 ] = xTimerCreate("Timer auto shoot",pdMS_TO_TICKS(1000),pdTRUE,( void * ) 3,timerCallBack);
+    xTimerStart(xTimers[3],0);
+
     VRC_Motor.Init();
     VRC_Servo.Init();
-    VRC_Servo.Angle(angle_reloader,THE_RELOADER);
+    VRC_Servo.Angle(ANGLE_LOAD,THE_RELOADER);
     VRC_Servo.Angle(angle_gate, THE_GATE);
 
 }
@@ -406,8 +452,9 @@ void loop() {
     if(running_permission){
         ps2_ctrl();
         pwm_calc();
+        VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
+        VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
+        VRC_Motor.Run(THE_SHOOTER,shooting_pwm,0);
     }
 
-    // ps2_ctrl();
-    // pwm_calc();
 }
