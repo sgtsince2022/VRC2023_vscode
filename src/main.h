@@ -64,6 +64,7 @@ struct gear {
 #define LED_PIN 32
 
 enum led_color_t{
+    NONE,
     RED,
     BLUE,
     GREEN,

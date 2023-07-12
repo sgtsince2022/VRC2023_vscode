@@ -23,9 +23,38 @@ int angle_gate = 40, angle_reloader = 50;
 bool mode_auto = 0;
 int16_t pwm_left, pwm_right;
 byte vibrate = 0;
+led_color_t prev_color=NONE;
 
 void led_all_color(int red, int green, int blue);
+void set_led(led_color_t color);
 
+void set_led(led_color_t color){
+    if(color != prev_color){
+        switch(color){
+            prev_color = color;
+            case RED:
+                led_all_color(180,0,0);
+            break;
+            case BLUE:
+                led_all_color(0,0,180);
+            break;
+            case GREEN:
+                led_all_color(0,180,0);
+            break;
+            case YELLOW:
+                led_all_color(180,180,0);
+            break;
+            case PURPLE:
+                led_all_color(100,0,100);
+            break;
+            case WHITE:
+                led_all_color(180,180,180);
+            break;
+            default:
+            break;
+        }
+    }
+}
 void ps2_init() {
     Serial.println("connecting to ps2..");
 
@@ -391,14 +420,18 @@ void timerCallBack(TimerHandle_t xTimer){
         // Serial.print("Hello ESP: ");
         // Serial.println(count);
         // count++;
+
         if(pwm_left>0 || pwm_right >0){
-            led_all_color(180,180,0); //Yelow running
+            //led_all_color(180,180,0); //Yelow running
+            set_led(YELLOW);
         }
         else if(shooting_pwm>0){
-            led_all_color(100,0,0); //Red shooting
+            //led_all_color(100,0,0); //Red shooting
+            set_led(RED);
         }
         else{
-            led_all_color(0,180,0); //Green Waiting
+            //led_all_color(0,180,0); //Green Waiting
+            set_led(GREEN);
         }
     }
 
@@ -437,7 +470,7 @@ void timerCallBack(TimerHandle_t xTimer){
 }
 
 void led_all_color(int red, int green, int blue){
-  for(int i=0;i<10;i++){
+  for(int i=0;i<NUM_LEDS;i++){
     VRC_leds[i] = CRGB(red, green, blue);
     FastLED.show();
   }
@@ -448,13 +481,14 @@ void setup() {
 
     // led config
     FastLED.addLeds<WS2812, LED_PIN, GRB>(VRC_leds, NUM_LEDS);
-    led_all_color(100,0,100); //purple
+    //led_all_color(100,0,100); //purple
+    set_led(PURPLE);
 
     ps2_init(); 
     info_monitor();
 
-    led_all_color(0,180,0); //green, done Init
-
+    //led_all_color(0,180,0); //green, done Init
+    set_led(GREEN);
     // Create Timer
     xTimers[ 0 ] = xTimerCreate("Timer PS2",pdMS_TO_TICKS(50),pdTRUE,( void * ) 0,timerCallBack);
     xTimerStart(xTimers[0],0);
