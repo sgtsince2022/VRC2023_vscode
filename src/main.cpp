@@ -15,13 +15,17 @@ CRGB  VRC_leds[NUM_LEDS];
 
 int16_t MAX_PWM = GEAR_M.init_MAX_PWM;
 int16_t MIN_PWM = GEAR_M.min;
-int16_t PWM_U1  = 4000;
+int16_t PWM_U1  = 3200;
 int16_t PWM_U2  = 4000; 
 int gear = 0;
-bool dir_left, dir_right, rolling_dir, roller_running = 0;
+bool dir_left, dir_right, rolling_dir;
+bool roller_running = 0;
 int angle_gate = 40, angle_reloader = 50;
 bool mode_auto = 0;
+
 int16_t pwm_left, pwm_right;
+uint16_t shooting_pwm = 0, rolling_pwm=0;
+
 byte vibrate = 0;
 led_color_t prev_color=NONE;
 
@@ -128,18 +132,6 @@ void ps2_ctrl() {
     //! @brief BLUE/CROSS PRESSED -> TOGGLE THE SHOOTER(S)
     
     if (VRC_PS2.ButtonPressed(PSB_BLUE)) {
-        // if (status_SHOOTER == 0) { // shooter on
-        //     VRC_Motor.Run(THE_SHOOTER, PWM_U1, 0);
-        //     delay(500); // wait for the shooter to reach balance speed
-        //     Serial.println("THE SHOOTER -> ON"); 
-        //     Serial.println("================="); 
-        //     delay(50);
-        // } else { // shooter off
-        //     VRC_Motor.Run(THE_SHOOTER, 0, 0);
-        //     Serial.println("THE SHOOTER -> OFF"); 
-        //     Serial.println("=================="); 
-        //     delay(50);
-        // }
         status_SHOOTER = !status_SHOOTER;
     }
     
@@ -147,97 +139,32 @@ void ps2_ctrl() {
     if (VRC_PS2.ButtonPressed(PSB_L1)) {
         if (roller_running == 0) {
             rolling_dir = 1; // intake
-            VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
+            rolling_pwm = PWM_U2;
             roller_running = 1;
-        
             // Serial.println("INTAKING..");
             // Serial.println("=========="); delay(50);
-        } else if (roller_running == 1) {
-            if (rolling_dir == 0) {
-                rolling_dir = 1; // intake
-                VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
-                roller_running = 1;
-        
-                // Serial.println("INTAKING..");
-                // Serial.println("=========="); delay(50);
-            } else {
-                VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
-                roller_running = 0;
-
-                // Serial.println("ROLLER STOP");
-                // Serial.println("==========="); delay(50);
-            }
+        } 
+        else{
+            rolling_pwm = 0;
+            roller_running = 0;
         }
     }
 
-    // static bool status_rollerpart_r1 = 0;
-    // if (VRC_PS2.ButtonPressed(PSB_R1)) {
-    //     rolling_dir = 1;
-    //     if (status_rollerpart_r1 == 0) { // roller on
-    //         VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
-    //         roller_running = 1;
-            
-    //         Serial.print("THE ROLLER -> ON, DIR = "); Serial.println(rolling_dir, DEC); 
-    //         Serial.println("================"); 
-    //         delay(50);
-    //     } else { // roller off
-    //         VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
-    //         roller_running = 0;
-            
-    //         Serial.print("THE ROLLER -> OFF, DIR = "); Serial.println(rolling_dir, DEC); 
-    //         Serial.println("================="); 
-    //         delay(50);
-    //     }
-    //     status_rollerpart_r1 = !status_rollerpart_r1;
-    // }
 
     //! @brief R1 PRESSED -> TOGGLE THE ROLLER PART - DIRECTION TO 0 - RELEASE
-    
     if (VRC_PS2.ButtonPressed(PSB_R1)) {
         if (roller_running == 0) {
             rolling_dir = 0; // release
-            VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
+            rolling_pwm = PWM_U2;
             roller_running = 1;
-        
-            // Serial.println("RELEASING..");
-            // Serial.println("==========="); delay(50);
-        } else if (roller_running == 1) {
-            if (rolling_dir == 1) { // intaking ? releasing : off
-                rolling_dir = 0; // release
-                VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
-                roller_running = 1;
-        
-                // Serial.println("RELEASING..");
-                // Serial.println("==========="); delay(50);
-            } else {
-                VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
-                roller_running = 0;
-
-                // Serial.println("ROLLER STOP");
-                // Serial.println("==========="); delay(50);
-            }
+            // Serial.println("INTAKING..");
+            // Serial.println("=========="); delay(50);
+        } 
+        else{
+            rolling_pwm = 0;
+            roller_running = 0;
         }
     }
-
-    // static bool status_rollerpart_l1 = 0;
-    // if (VRC_PS2.ButtonPressed(PSB_L1)) {
-    //     rolling_dir = 0;
-
-    //     if (status_rollerpart_l1 == 0) { // roller on
-    //         VRC_Motor.Run(THE_ROLLER, PWM_U2, rolling_dir);
-    //         roller_running = 1;
-    //         Serial.print("THE ROLLER -> ON, DIR = "); Serial.println(rolling_dir, DEC); 
-    //         Serial.println("================"); 
-    //         delay(50);
-    //     } else { // roller off
-    //         VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
-    //         roller_running = 0;
-    //         Serial.print("THE ROLLER -> OFF, DIR = "); Serial.println(rolling_dir, DEC); 
-    //         Serial.println("================="); 
-    //         delay(50);
-    //     }
-    //     status_rollerpart_l1 = !status_rollerpart_l1;
-    // }
 
     //! @brief L2 PRESSED -> TURN OFF THE ROLLER
     if (VRC_PS2.ButtonPressed(PSB_L2)) {
@@ -396,7 +323,7 @@ void info_monitor() {
 TimerHandle_t xTimers[4];
 unsigned long count = 0;
 bool running_permission = 0;
-uint16_t shooting_pwm = 0;
+
 void timerCallBack(TimerHandle_t xTimer){
     configASSERT(xTimer);
     int ulCount = (uint32_t) pvTimerGetTimerID(xTimer);
@@ -515,7 +442,8 @@ void loop() {
         pwm_calc();
         VRC_Motor.Run(LEFT_MOTOR, pwm_left, dir_left);
         VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
-        VRC_Motor.Run(THE_SHOOTER,shooting_pwm,0);
+        VRC_Motor.Run(THE_SHOOTER, shooting_pwm,0);
+        VRC_Motor.Run(THE_ROLLER, rolling_pwm, rolling_dir);
     }
 
 }
