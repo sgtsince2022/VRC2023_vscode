@@ -21,13 +21,15 @@ int gear = 0;
 bool dir_left, dir_right, rolling_dir;
 bool roller_running = 0;
 int angle_gate = 40, angle_reloader = 50;
-bool mode_auto = 0;
+bool mode_auto = 0, mode_manual =0;
 
 int16_t pwm_left, pwm_right;
 uint16_t shooting_pwm = 0, rolling_pwm=0;
 
 byte vibrate = 0;
 led_color_t prev_color=NONE;
+
+static unsigned long prev_time_loader = 0;
 
 void led_all_color(int red, int green, int blue);
 void set_led(led_color_t color);
@@ -37,22 +39,25 @@ void set_led(led_color_t color){
         switch(color){
             prev_color = color;
             case RED:
-                led_all_color(180,0,0);
+                led_all_color(120,0,0);
             break;
             case BLUE:
-                led_all_color(0,0,180);
+                led_all_color(0,0,120);
             break;
             case GREEN:
-                led_all_color(0,180,0);
+                led_all_color(0,120,0);
             break;
             case YELLOW:
-                led_all_color(180,180,0);
+                led_all_color(120,120,0);
             break;
             case PURPLE:
                 led_all_color(100,0,100);
             break;
             case WHITE:
-                led_all_color(180,180,180);
+                led_all_color(120,120,120);
+            break;
+            case CYAN:
+                led_all_color(0,120,120);
             break;
             default:
             break;
@@ -94,12 +99,12 @@ void ps2_ctrl() {
     // VRC_PS2.read_gamepad(false, false);
 
     //! @brief L2 PRESSED -> INFOMATION MONITOR
-    if (VRC_PS2.ButtonPressed(PSB_L2)) {
-        if (roller_running != 1) {
-            info_monitor();
-            delay(50);
-        }
-    }
+    // if (VRC_PS2.ButtonPressed(PSB_L2)) {
+    //     if (roller_running != 1) {
+    //         info_monitor();
+    //         delay(50);
+    //     }
+    // }
 
     //! @brief GREEN/TRIANGLE PRESSED -> ACTIVATE THE GATE
     
@@ -118,14 +123,21 @@ void ps2_ctrl() {
         status_GATE = !status_GATE;
     }
 
+    
     //! @brief PINK/SQUARE PRESSED -> ACTIVATE THE RELOADER
     if (VRC_PS2.ButtonPressed(PSB_PINK)) {
+        while(VRC_PS2.ButtonPressed(PSB_PINK));
+            set_led(CYAN);
+            delay(10);
+            mode_auto = 0;
+            mode_manual = 1;
             VRC_Servo.Angle(0, THE_RELOADER);
-            vTaskDelay(pdMS_TO_TICKS(800));
-            VRC_Servo.Angle(angle_reloader, THE_RELOADER);
+            prev_time_loader = millis();
+            //delay(800);
+            //VRC_Servo.Angle(angle_reloader, THE_RELOADER);
             // Serial.println("RELOADING..");
             // Serial.println("==========="); 
-            delay(50);
+            //delay(5);
     }
     
 
@@ -168,13 +180,22 @@ void ps2_ctrl() {
 
     //! @brief L2 PRESSED -> TURN OFF THE ROLLER
     if (VRC_PS2.ButtonPressed(PSB_L2)) {
-        if (roller_running == 1) {
-            VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
+            //VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
+            // reset All
             roller_running = 0;
-        
+            rolling_pwm = 0;
+            pwm_right = 0;
+            pwm_left= 0;
+            shooting_pwm = 0;
+            status_AUTO = 0;
+            mode_manual = 0;
+            mode_auto =0;
+            status_SHOOTER = 0;
+            status_GATE = 0;
+            VRC_Servo.Angle(ANGLE_LOAD,THE_RELOADER);
+            VRC_Servo.Angle(angle_gate, THE_GATE);
             // Serial.println("ROLLER STOP");
             // Serial.println("==========="); delay(50);
-        }
     }
 
     //! @brief L3 PRESSED -> GEAR UP 
@@ -216,10 +237,18 @@ void ps2_ctrl() {
     }
     
     //Auto shooting
-    if (VRC_PS2.ButtonPressed(PSB_PAD_UP)){
+    if (VRC_PS2.ButtonPressed(PSB_CIRCLE)){
         status_AUTO = !status_AUTO;
+        mode_auto = 1;
+        mode_manual = 0;
+        if(status_AUTO == 0){
+            set_led(GREEN);
+        }
+        else
+        {
+            set_led(CYAN);
+        }
     }
-
 }
 
 
@@ -348,17 +377,19 @@ void timerCallBack(TimerHandle_t xTimer){
         // Serial.println(count);
         // count++;
 
-        if(pwm_left>0 || pwm_right >0){
+        if((pwm_left>0 || pwm_right >0) && status_AUTO == 0){
             //led_all_color(180,180,0); //Yelow running
             set_led(YELLOW);
         }
-        else if(shooting_pwm>0){
+        else if(shooting_pwm>0 && status_AUTO == 0){
             //led_all_color(100,0,0); //Red shooting
             set_led(RED);
         }
         else{
             //led_all_color(0,180,0); //Green Waiting
-            set_led(GREEN);
+            if(status_AUTO == 0){
+                set_led(GREEN);
+            }
         }
     }
 
@@ -426,7 +457,7 @@ void setup() {
     xTimers[ 2 ] = xTimerCreate("Timer accel shoot",pdMS_TO_TICKS(50),pdTRUE,( void * ) 2,timerCallBack);
     xTimerStart(xTimers[2],0);
 
-    xTimers[ 3 ] = xTimerCreate("Timer auto shoot",pdMS_TO_TICKS(1000),pdTRUE,( void * ) 3,timerCallBack);
+    xTimers[ 3 ] = xTimerCreate("Timer auto shoot",pdMS_TO_TICKS(800),pdTRUE,( void * ) 3,timerCallBack);
     xTimerStart(xTimers[3],0);
 
     VRC_Motor.Init();
@@ -444,6 +475,9 @@ void loop() {
         VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         VRC_Motor.Run(THE_SHOOTER, shooting_pwm,0);
         VRC_Motor.Run(THE_ROLLER, rolling_pwm, rolling_dir);
+        if(millis()-prev_time_loader > 1000 && mode_manual == 1){
+            VRC_Servo.Angle(angle_reloader, THE_RELOADER);
+        }
     }
 
 }

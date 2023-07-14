@@ -70,7 +70,9 @@ enum led_color_t{
     GREEN,
     YELLOW,
     PURPLE,
-    WHITE
+    WHITE,
+    CYAN
+
 };
 
 #endif
