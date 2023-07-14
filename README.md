@@ -27,8 +27,10 @@ Code for VRC2023
 
 - *[L3]* : GEAR **UP** (+1).  
 - *[R3]* : GEAR **DOWN** (-1).  
+- *[R2]* : GEAR RESET TO GEAR 0.  
 
 > if in GEAR 4, GEAR UP = 0.
+
 
 3. **UTILITIES**  
 
@@ -39,4 +41,4 @@ Code for VRC2023
 
 - *[L1]* : **INTAKE**.  
 - *[R1]* : **RELEASE**.  
-- *[L2]* : turn ***OFF*** the **ROLLER**.  
+- *[L2]* :  tắt tất cả các motors/servo.

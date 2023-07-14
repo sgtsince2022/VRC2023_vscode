@@ -96,18 +96,9 @@ static bool status_SHOOTER = 0;
 static bool status_GATE = 0;
 static bool status_AUTO = 0;
 void ps2_ctrl() {
-    // VRC_PS2.read_gamepad(false, false);
-
-    //! @brief L2 PRESSED -> INFOMATION MONITOR
-    // if (VRC_PS2.ButtonPressed(PSB_L2)) {
-    //     if (roller_running != 1) {
-    //         info_monitor();
-    //         delay(50);
-    //     }
-    // }
 
     //! @brief GREEN/TRIANGLE PRESSED -> ACTIVATE THE GATE
-    
+
     if (VRC_PS2.ButtonPressed(PSB_GREEN)) {
         if (status_GATE == 0) { // DEGREE: 0 -> angle_gate
             VRC_Servo.Angle(angle_gate, THE_GATE);
@@ -122,7 +113,6 @@ void ps2_ctrl() {
         }
         status_GATE = !status_GATE;
     }
-
     
     //! @brief PINK/SQUARE PRESSED -> ACTIVATE THE RELOADER
     if (VRC_PS2.ButtonPressed(PSB_PINK)) {
@@ -178,7 +168,7 @@ void ps2_ctrl() {
         }
     }
 
-    //! @brief L2 PRESSED -> TURN OFF THE ROLLER
+    //! @brief L2 PRESSED -> TURN OFF FUNCTIONS
     if (VRC_PS2.ButtonPressed(PSB_L2)) {
             //VRC_Motor.Run(THE_ROLLER, 0, rolling_dir);
             // reset All
@@ -236,6 +226,11 @@ void ps2_ctrl() {
         // delay(50);
     }
     
+    //! @brief R2 PRESSED -> GEAR SET TO NEUTRAL (GEAR 0)
+    if (VRC_PS2.ButtonPressed(PSB_R2)) {
+        gear = GEAR_M.init_MAX_PWM;
+    }
+
     //Auto shooting
     if (VRC_PS2.ButtonPressed(PSB_CIRCLE)){
         status_AUTO = !status_AUTO;
