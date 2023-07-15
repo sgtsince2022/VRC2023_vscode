@@ -115,14 +115,22 @@ void ps2_ctrl() {
     }
     
     //! @brief PINK/SQUARE PRESSED -> ACTIVATE THE RELOADER
+    static bool status_RELOADER = 0;
     if (VRC_PS2.ButtonPressed(PSB_PINK)) {
         while(VRC_PS2.ButtonPressed(PSB_PINK));
             set_led(CYAN);
             delay(10);
             mode_auto = 0;
             mode_manual = 1;
-            VRC_Servo.Angle(0, THE_RELOADER);
-            prev_time_loader = millis();
+            
+            if (status_RELOADER == 0) {
+                VRC_Servo.Angle(ANGLE_SHOOT, THE_RELOADER);
+            } else {
+                VRC_Servo.Angle(ANGLE_LOAD, THE_RELOADER);
+            }
+            status_RELOADER = !status_RELOADER;
+
+            // prev_time_loader = millis();
             //delay(800);
             //VRC_Servo.Angle(angle_reloader, THE_RELOADER);
             // Serial.println("RELOADING..");
@@ -416,7 +424,7 @@ void timerCallBack(TimerHandle_t xTimer){
                 angle_reloader = ANGLE_SHOOT;
             }
         }
-        else{
+        else if (mode_manual==0){
             VRC_Servo.Angle(ANGLE_LOAD, THE_RELOADER);
         }
     }
@@ -470,9 +478,9 @@ void loop() {
         VRC_Motor.Run(RIGHT_MOTOR, pwm_right, dir_right);
         VRC_Motor.Run(THE_SHOOTER, shooting_pwm,0);
         VRC_Motor.Run(THE_ROLLER, rolling_pwm, rolling_dir);
-        if(millis()-prev_time_loader > 1000 && mode_manual == 1){
-            VRC_Servo.Angle(angle_reloader, THE_RELOADER);
-        }
+        // if(millis()-prev_time_loader > 1000 && mode_manual == 1){
+        //     VRC_Servo.Angle(angle_reloader, THE_RELOADER);
+        // }
     }
 
 }
